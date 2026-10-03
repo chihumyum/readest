@@ -16,7 +16,7 @@ vi.mock('@/store/settingsStore', () => ({
       // The "File Path" entry lives under the Metadata section; tests below
       // depend on it being expanded by default so the row is in the DOM.
       metadataOthersCollapsed: false,
-      metadataDescriptionCollapsed: true,
+      metadataDescriptionCollapsed: false,
     },
   }),
 }));
@@ -198,5 +198,20 @@ describe('BookDetailView file path row', () => {
   it('omits the file path row for hash-copy books (no filePath)', () => {
     const { queryByText } = renderView({ book: makeBook() });
     expect(queryByText('File Path')).toBeNull();
+  });
+});
+
+describe('BookDetailView metadata description', () => {
+  it('sanitizes untrusted EPUB metadata while preserving safe markup', () => {
+    const description =
+      '<p>Safe <strong>description</strong></p><img src="x" onerror="steal()"><script>evil()</script>';
+    const { container, getByText } = renderView({
+      metadata: { description } as React.ComponentProps<typeof BookDetailView>['metadata'],
+    });
+
+    expect(getByText('description').tagName).toBe('STRONG');
+    expect(container.querySelector('img')?.getAttribute('onerror')).toBeNull();
+    expect(container.querySelector('script')).toBeNull();
+    expect(container.textContent).not.toContain('evil()');
   });
 });
